@@ -46,7 +46,7 @@ jobs:
           cp -R "$APP" Payload/
           zip -qry Raspisanie-unsigned.ipa Payload
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: Raspisanie-ipa
           path: Raspisanie-unsigned.ipa
