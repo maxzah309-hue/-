@@ -11,18 +11,13 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Xcode version
         run: xcodebuild -version
 
       - name: ScheduleKit tests
         run: swift test --package-path ScheduleKit
-
-      - name: Generate Xcode project
-        run: |
-          brew install xcodegen
-          xcodegen generate
 
       - name: Build
         run: |
@@ -39,6 +34,10 @@ jobs:
           APP=build/Build/Products/Release-iphoneos/Raspisanie.app
           GROUP=$(xcodebuild -project Raspisanie.xcodeproj -target Raspisanie -showBuildSettings 2>/dev/null \
             | awk -F ' = ' '$1 ~ / APP_GROUP_ID$/ { print $2 }')
+          test -n "$GROUP"
+          # Виджет встроен в приложение, и оба знают имя общей группы.
+          test "$(plutil -extract AppGroupID raw "$APP/Info.plist")" = "$GROUP"
+          test "$(plutil -extract AppGroupID raw "$APP/PlugIns/RaspisanieWidget.appex/Info.plist")" = "$GROUP"
           sed "s/\$(APP_GROUP_ID)/$GROUP/" Config/Raspisanie.entitlements > app.entitlements
           # Ad-hoc подпись только зашивает entitlements; Sideloadly/AltStore переподпишут приложение своим Apple ID.
           codesign --force --sign - --entitlements app.entitlements "$APP/PlugIns/RaspisanieWidget.appex"
@@ -47,12 +46,7 @@ jobs:
           cp -R "$APP" Payload/
           zip -qry Raspisanie-unsigned.ipa Payload
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: Raspisanie-ipa
           path: Raspisanie-unsigned.ipa
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: xcodeproj
-          path: Raspisanie.xcodeproj
